@@ -1,0 +1,362 @@
+/****************************************************/
+/******************** Slide To **********************/
+/****************************************************/
+
+function slideTo(selector, offset){
+
+    if(event && typeof event !== typeof undefined){
+        try {
+            event.preventDefault();
+        } catch(err) {
+            return false;
+        }
+    }
+
+    var slideTo = (selector && jQuery(selector)) ? jQuery(selector).offset().top : 0;
+
+    if(!offset) offset = 76
+
+    if(slideTo > offset) slideTo -= offset;
+
+    jQuery("html, body").animate({
+        'scrollTop': slideTo + 'px'
+    }, 800, 'easeInOutCubic');
+
+    return false;
+};
+
+
+/**************************************/
+/******** Video Popup *****************/
+/**************************************/
+
+
+
+var VideoPopup = function(){
+
+    var popup = this;
+
+    popup.$container = jQuery('#video-popup');
+    popup.$iframe  = popup.$container.find('iframe');
+
+    popup.open = function(url){
+
+        popup.$container.addClass('open');
+
+        popup.$iframe.attr('src', url);
+
+    };
+
+    popup.close = function(url){
+
+        popup.$container.fadeOut(function(){
+
+            popup.$container.removeClass('open').removeAttr('style');
+
+            popup.$iframe.attr('src', '');
+
+
+        });
+
+    };
+
+};
+
+jQuery(document).ready(function(){
+
+    window.VideoPopup = new VideoPopup();
+
+});
+
+/**************************************/
+/****** Custom Radio Input ************/
+/**************************************/
+
+jQuery(document).ready(function(){
+
+    jQuery.each(jQuery('input[type="radio"]').parent('.radio'), function(i, radio){
+
+        var $radio = jQuery(radio);
+        var $input = $radio.find('input[type="radio"]');
+
+        $input.on('change', function(){
+
+            jQuery('input[type="radio"][name="'+$input.attr('name')+'"]').parent('.radio.checked').removeClass('checked');
+
+            $radio.toggleClass('checked', $input.attr('checked') == 'checked');
+
+        });
+
+        $radio.on('click', function(){
+
+            $input.attr('checked', true).trigger('change');
+
+        });
+
+    });
+
+});
+
+
+/**************************************/
+/********* Post to URL ****************/
+/**************************************/
+
+function postToUrl(path, params, method){
+
+    function getFormFields(params, name){
+
+        var fields = [];
+
+
+        function isJson(json){
+
+            if(typeof json == 'number' || !isNaN(json))
+                return false;
+
+            try {
+                JSON.parse(json);
+                return true;
+            } catch (e) {
+                return false;
+            }
+
+        }
+
+        for (var key in params)
+        {
+            if (params.hasOwnProperty(key))
+            {
+                var fieldName = (typeof name != typeof undefined) ? name + '[' + key + ']' : key;
+
+                if((typeof params[key] == 'string' && isJson(params[key])) || typeof params[key] == 'object'){
+
+                    fields = fields.concat(getFormFields(params[key], fieldName));
+
+                } else {
+
+                    var hiddenField = document.createElement('input');
+
+                        hiddenField.setAttribute('type',  'hidden');
+                        hiddenField.setAttribute('name',  fieldName);
+                        hiddenField.setAttribute('value', params[key]);
+
+                    fields.push(hiddenField);
+
+                }
+            }
+        }
+
+        return fields;
+
+    }
+
+
+    method = method || 'post';
+
+    var form = document.createElement('form');
+        form.setAttribute('method', method);
+        form.setAttribute('action', path);
+
+    var formFields = getFormFields(params);
+
+    for (var index in formFields)
+    {
+        form.appendChild(formFields[index]);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+
+
+}
+
+
+/**************************************/
+/****** Content Slider ****************/
+/**************************************/
+
+(function($) {
+
+    $.fn.contentSlider = function() {
+
+        return this.each(function() {
+
+            var slider = this;
+
+            slider.$container = $(this);
+            slider.$slides = slider.$container.find('.slide');
+            slider.$currentSlide = slider.$slides.filter('.active').first();
+            slider.$slidesCount = slider.$slides.length;
+
+
+            // slider functionality
+
+            slider.next = function(){
+
+                var currentSlideIndex = parseInt(slider.$currentSlide.data('slide-index'));
+                var nextSlideIndex = (currentSlideIndex == slider.$slidesCount - 1) ? 0 : currentSlideIndex + 1;
+
+                slider.show(slider.$slides.filter('[data-slide-index="'+nextSlideIndex+'"]').first());
+
+            };
+
+            slider.prev = function(){
+
+                var currentSlideIndex = parseInt(slider.$currentSlide.data('slide-index'));
+                var nextSlideIndex = (currentSlideIndex == 0) ? slider.$slidesCount - 1 : currentSlideIndex - 1;
+
+                slider.show(slider.$slides.filter('[data-slide-index="'+nextSlideIndex+'"]').first());
+
+            };
+
+            slider.show = function($slide){
+
+                slider.$currentSlide = $slide;
+
+                slider.$container.find('.slide.active').removeClass('active');
+                $slide.addClass('active');
+
+                slider.$container.find('.slides-pagination li.active').removeClass('active');
+                slider.$container.find('.slides-pagination a[href="#'+$slide.attr('id')+'"]').parent().addClass('active');
+
+                slider.resizeContainer();
+
+            };
+
+
+            // required for animating container height
+
+            slider.resizeContainer = function(){
+
+                slider.$container.children('.slides').css('height', slider.$currentSlide.outerHeight(true));
+
+            };
+
+            $(window).on('load resize', slider.resizeContainer);
+
+
+            // index slides
+
+            $.each(slider.$slides, function(i, slide){
+                $(slide).attr('data-slide-index', i);
+            });
+
+
+            // initialize navigation & pagination
+
+            slider.$container.find('.slides-navigation .previous').on('click', slider.prev);
+            slider.$container.find('.slides-navigation .next').on('click', slider.next);
+
+            slider.$container.find('.slides-pagination a').on('click', function(event){
+                event.preventDefault();
+                slider.show(slider.$slides.filter($(this).attr('href')));
+            });
+
+        });
+
+    };
+
+}(jQuery));
+
+
+
+/**************************************/
+/****** Facebook Connect **************/
+/**************************************/
+
+var fb_app_id = '473373986099535'
+var fb_scope = 'public_profile, email';
+
+
+function fb_response(response) {
+
+    if (response.status === 'connected') {
+
+        var params = {
+            action: 'fb_connect',
+            service: jQuery('[name="fb-service"]').filter(':checked').val(),
+            token: response.authResponse.accessToken
+        };
+
+        postToUrl('https://manage.haphost.com/login', params, 'post');
+
+    }
+
+}
+
+function fb_connect(){
+
+    FB.login(function(response){
+        fb_response(response)
+    }, {scope: fb_scope, return_scopes: true});
+
+}
+
+window.fbAsyncInit = function () {
+
+    FB.init({
+        appId: fb_app_id,
+        cookie: true, // enable cookies to allow the server to access the session
+        xfbml: false, // parse social plugins on this page
+        version: 'v2.0' // use version 2.0
+    });
+
+
+};
+
+(function (d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) return;
+    js = d.createElement(s);
+    js.id = id;
+    js.src = "//connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+
+
+
+/**************************************/
+/******* Google+ Connect **************/
+/**************************************/
+
+var gplus_client_id = '379767153032-7pdr2c00oj716tn8beu2sgqnfcifr7n8.apps.googleusercontent.com'
+var gplus_scope = 'https://www.googleapis.com/auth/plus.login email';
+
+function gplus_response(response){
+
+    if (response.status.signed_in  === true) {
+
+        var params = {
+            action: 'gplus_connect',
+            service: jQuery('[name="fb-service"]').filter(':checked').val(),
+            token: response.access_token
+        };
+
+        postToUrl('https://manage.haphost.com/login', params, 'post');
+
+    }
+
+}
+
+function gplus_connect(){
+
+    gapi.auth.signIn({
+        'clientid' : gplus_client_id,
+        'cookiepolicy' : 'none',
+        'callback' : 'gplus_response',
+        'scope' : gplus_scope,
+        'requestvisibleactions' : 'http://schema.org/AddAction'
+    });
+
+}
+
+(function () {
+  var po = document.createElement('script');
+  po.type = 'text/javascript';
+  po.async = true;
+  po.src = 'https://plus.google.com/js/client:plusone.js';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(po, s);
+})();
